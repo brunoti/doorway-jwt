@@ -1,24 +1,25 @@
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 
-export const login = (options) => async (ctx) => {
+const login = (options) => async (ctx) => {
   const { email, password } = ctx.request.body
   const user = await options.model.findOne({ email })
   if (!user) {
-    return ctx.unauthorized({
-      message: 'Email or Password are incorrect',
-    })
+    ctx.status = 401
+    ctx.body = { message: 'Email or Password are incorrect' }
+    return ctx
   }
 
   const isPasswordCorrect = await bcrypt.compare(password, user.password)
 
   if (!isPasswordCorrect) {
-    return ctx.unauthorized({
-      message: 'Email or Password are incorrect',
-    })
+    ctx.status = 401
+    ctx.body = { message: 'Email or Password are incorrect' }
+    return ctx
   }
 
-  ctx.ok({
+  ctx.status = 200
+  ctx.body = {
     result: {
       token: jwt.sign({
         user: user._id,
@@ -27,12 +28,15 @@ export const login = (options) => async (ctx) => {
       }),
       user,
     },
-  })
+  }
+
+  return ctx
 }
 
-export const renew = (options) => async (ctx) => {
+const renew = (options) => async (ctx) => {
   const { user } = ctx.state
-  await ctx.ok({
+  ctx.status = 200
+  ctx.body = {
     result: {
       token: jwt.sign({
         user: user._id,
@@ -41,5 +45,10 @@ export const renew = (options) => async (ctx) => {
       }),
       user,
     },
-  })
+  }
+}
+
+module.exports = {
+  login,
+  renew,
 }
